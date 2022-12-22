@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: camel-kafka-enricher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: camel-kafka-enricher
+  template:
+    metadata:
+      labels:
+        name: camel-kafka-enricher
+    spec:
+      containers:
+      - name: camel-kafka-enricher
+        image: quay.io/rhte2023edgelab/camel-kafka-enricher:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SMALLRYE_CONFIG_LOCATIONS
+          value: /etc/camel-kafka-enricher/application.properties
+        - name: ENRICHER_KAFKA_JAAS_CONFIG
+          valueFrom:
+            secretKeyRef:
+              name: camel-kafka-enricher
+              key: sasl.jaas.config
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /q/health/ready
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          successThreshold: 1
+          timeoutSeconds: 20
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /q/health/live
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          successThreshold: 1
+          timeoutSeconds: 20
+        volumeMounts:
+        - name: config
+          mountPath: /etc/camel-kafka-enricher
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: config
+        secret:
+          secretName: camel-config
+

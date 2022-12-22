@@ -54,11 +54,11 @@ public class Routes extends RouteBuilder {
             String topic = kv.getKey();
             TopicMetadata metadata = kv.getValue();
             
-            from(String.format("kafka:%s?brokers={{enricher.kafka-brokers}}", topic))
+            from(String.format("kafka:%s?brokers={{enricher.kafka-brokers}}&securityProtocol={{enricher.kafka.security-protocol}}&saslMechanism={{enricher.kafka.sasl-mechanism}}&saslJaasConfig={{enricher.kafka.jaas-config}}", topic))
                 .unmarshal().json(LocationEntity.class)
                 .process(new MessageEnricherProcessor(metadata.warehouse, metadata.direction))
                 .marshal().json()
-                .to(String.format("kafka:%s?brokers={{enricher.kafka-brokers}}", sinkTopic));
+                .to(String.format("kafka:%s?brokers={{enricher.kafka-brokers}}&securityProtocol={{enricher.kafka.security-protocol}}&saslMechanism={{enricher.kafka.sasl-mechanism}}&saslJaasConfig={{enricher.kafka.jaas-config}}", sinkTopic));
         }
 
         LOG.infov("Camel routes generated!");

@@ -1,0 +1,54 @@
+kind: KafkaTopic
+apiVersion: kafka.strimzi.io/v1beta2
+metadata:
+  name: headquarter-location-records
+  labels:
+    strimzi.io/cluster: headquarter
+spec:
+  config:
+    retention.ms: 604800000
+    segment.bytes: 1073741824
+---
+kind: KafkaTopic
+apiVersion: kafka.strimzi.io/v1beta2
+metadata:
+  name: warehouse-lis-in
+  labels:
+    strimzi.io/cluster: headquarter
+spec:
+  config:
+    retention.ms: 604800000
+    segment.bytes: 1073741824
+---
+kind: KafkaTopic
+apiVersion: kafka.strimzi.io/v1beta2
+metadata:
+  name: warehouse-lis-out
+  labels:
+    strimzi.io/cluster: headquarter
+spec:
+  config:
+    retention.ms: 604800000
+    segment.bytes: 1073741824
+---
+kind: KafkaTopic
+apiVersion: kafka.strimzi.io/v1beta2
+metadata:
+  name: warehouse-ath-in
+  labels:
+    strimzi.io/cluster: headquarter
+spec:
+  config:
+    retention.ms: 604800000
+    segment.bytes: 1073741824
+---
+kind: KafkaTopic
+apiVersion: kafka.strimzi.io/v1beta2
+metadata:
+  name: warehouse-ath-out
+  labels:
+    strimzi.io/cluster: headquarter
+spec:
+  config:
+    retention.ms: 604800000
+    segment.bytes: 1073741824

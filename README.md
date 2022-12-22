@@ -20,9 +20,12 @@ In the **application.properties**:
 
 ```ini
 enricher.topic.TOPIC.direction={in,out}
-enricher.topic.TOPIC.warehouse={par,bru,lon,lis,ath,sto,var,dub,buc,brn}
+enricher.topic.TOPIC.warehouse={PAR,BRU,LON,LIS,ATH,STO,VAR,DUB,BUC,BRN}
 enricher.sink-topic=location-records
 enricher.kafka-brokers=localhost:9092
+enricher.kafka.security-protocol=PLAINTEXT
+enricher.kafka.sasl-mechanism=PLAIN
+enricher.kafka.jaas-config="org.apache.kafka.common.security.plain.PlainLoginModule required username='john' password='secret';"
 ```
 
 ## Packaging and running the application
@@ -64,6 +67,108 @@ You can then execute your native executable with: `./target/camel-kafka-enricher
 
 If you want to learn more about building native executables, please consult https://quarkus.io/guides/maven-tooling.
 
+## Container image
+
+```sh
+APP_VERSION="$(./mvnw -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)"
+podman build -f src/main/docker/Dockerfile.jvm -t quay.io/rhte2023edgelab/camel-kafka-enricher:latest .
+podman tag quay.io/rhte2023edgelab/camel-kafka-enricher:latest quay.io/rhte2023edgelab/camel-kafka-enricher:$APP_VERSION
+podman push quay.io/rhte2023edgelab/camel-kafka-enricher:$APP_VERSION
+podman push quay.io/rhte2023edgelab/camel-kafka-enricher:latest
+```
+
+## Deploy in Kubernetes
+
+Create a project named "headquarter".
+
+Install the **Red Hat Integration - AMQ Streams** operator
+
+Create a Kafka resource.
+
+```yaml
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: headquarter
+spec:
+  kafka:
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      default.replication.factor: 3
+      min.insync.replicas: 2
+      inter.broker.protocol.version: '3.2'
+    storage:
+      type: ephemeral
+    listeners:
+      - authentication:
+          type: scram-sha-512
+        name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - authentication:
+          type: scram-sha-512
+        name: tls
+        port: 9093
+        type: route
+        tls: true
+    version: 3.2.3
+    replicas: 3
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+  zookeeper:
+    storage:
+      type: ephemeral
+    replicas: 3
+```
+
+Deploy all Kubernetes manifests.
+
+```sh
+kubectl apply -f k8s
+```
+
+Create **kcat-hq.conf** as follow:
+
+```ini
+# Required connection configs for Kafka producer, consumer, and admin
+bootstrap.servers=headquarter-kafka-tls-bootstrap-headquarter.apps.appdev.itix.xyz:443
+ssl.ca.location=/home/nmasse/tmp/headquarter.pem
+security.protocol=SASL_SSL
+sasl.mechanisms=SCRAM-SHA-512
+sasl.username=camel-kafka-enricher
+sasl.password=s3cr3t
+
+# Best practice for higher availability in librdkafka clients prior to 1.7
+session.timeout.ms=45000
+```
+
+Start the following command in a separate terminal.
+
+```sh
+kcat -b headquarter-kafka-tls-bootstrap-headquarter.apps.appdev.itix.xyz:443 -C -F ~/tmp/kcat-hq.conf -t headquarter-location-records -f "%k => %s\n"
+```
+
+Send events to each incoming topic:
+
+```sh
+kcat -b headquarter-kafka-tls-bootstrap-headquarter.apps.appdev.itix.xyz:443 -P -F ~/tmp/kcat-hq.conf -t warehouse-lis-in -k 55:66:77:88 <<EOF
+{"parcelNumber":"55:66:77:88","timestamp":$(date +%s -d "now")}
+EOF
+kcat -b headquarter-kafka-tls-bootstrap-headquarter.apps.appdev.itix.xyz:443 -P -F ~/tmp/kcat-hq.conf -t warehouse-lis-out -k 55:66:77:88 <<EOF
+{"parcelNumber":"55:66:77:88","timestamp":$(date +%s -d "now")}
+EOF
+kcat -b headquarter-kafka-tls-bootstrap-headquarter.apps.appdev.itix.xyz:443 -P -F ~/tmp/kcat-hq.conf -t warehouse-ath-in -k 55:66:77:88 <<EOF
+{"parcelNumber":"55:66:77:88","timestamp":$(date +%s -d "now")}
+EOF
+kcat -b headquarter-kafka-tls-bootstrap-headquarter.apps.appdev.itix.xyz:443 -P -F ~/tmp/kcat-hq.conf -t warehouse-ath-out -k 55:66:77:88 <<EOF
+{"parcelNumber":"55:66:77:88","timestamp":$(date +%s -d "now")}
+EOF
+```
+
 ## Development environment
 
 Start the Kafka broker and create two topics.
@@ -87,7 +192,7 @@ security.protocol=PLAINTEXT
 session.timeout.ms=45000
 ```
 
-Start the following commands in a separate terminal.
+Start the following command in a separate terminal.
 
 ```sh
 kcat -b localhost:9092 -C -F kcat.conf -t location-records -f "%k => %s\n"
