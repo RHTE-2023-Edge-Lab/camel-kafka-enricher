@@ -27,11 +27,14 @@ public class Routes extends RouteBuilder {
             }
 
             String[] parts = key.split("\\.");
-            if (parts.length != 4) {
+            if (parts.length < 4) {
                 continue;
             }
 
-            topics.put(parts[2], null);
+            String[] topicParts = new String[parts.length - 3];
+            System.arraycopy(parts, 2, topicParts, 0, parts.length - 3);
+            String topic = String.join(".", topicParts);
+            topics.put(topic, null);
         }
 
         it = topics.keySet().iterator();
