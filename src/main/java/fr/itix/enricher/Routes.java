@@ -34,6 +34,7 @@ public class Routes extends RouteBuilder {
             String[] topicParts = new String[parts.length - 3];
             System.arraycopy(parts, 2, topicParts, 0, parts.length - 3);
             String topic = String.join(".", topicParts);
+            LOG.infov("Found topic {0}!", topic);
             topics.put(topic, null);
         }
 
