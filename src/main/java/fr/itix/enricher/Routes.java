@@ -58,11 +58,11 @@ public class Routes extends RouteBuilder {
             String topic = kv.getKey();
             TopicMetadata metadata = kv.getValue();
             
-            from(String.format("kafka:%s?brokers={{enricher.kafka-brokers}}&securityProtocol={{enricher.kafka.security-protocol}}&saslMechanism={{enricher.kafka.sasl-mechanism}}&saslJaasConfig={{enricher.kafka.jaas-config}}", topic))
+            from(String.format("kafka:%s?brokers={{enricher.kafka-brokers}}&securityProtocol={{enricher.kafka.security-protocol}}&saslMechanism={{enricher.kafka.sasl-mechanism}}&saslJaasConfig={{enricher.kafka.jaas-config}}&additionalProperties.allow.auto.create.topics={{kafka-client.allow.auto.create.topics}}", topic))
                 .unmarshal().json(LocationEntity.class)
                 .process(new MessageEnricherProcessor(metadata.warehouse, metadata.direction))
                 .marshal().json()
-                .to(String.format("kafka:%s?brokers={{enricher.kafka-brokers}}&securityProtocol={{enricher.kafka.security-protocol}}&saslMechanism={{enricher.kafka.sasl-mechanism}}&saslJaasConfig={{enricher.kafka.jaas-config}}", sinkTopic));
+                .to(String.format("kafka:%s?brokers={{enricher.kafka-brokers}}&securityProtocol={{enricher.kafka.security-protocol}}&saslMechanism={{enricher.kafka.sasl-mechanism}}&saslJaasConfig={{enricher.kafka.jaas-config}}&additionalProperties.allow.auto.create.topics={{kafka-client.allow.auto.create.topics}}", sinkTopic));
         }
 
         LOG.infov("Camel routes generated!");
